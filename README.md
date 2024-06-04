@@ -1,4 +1,4 @@
-![image](https://github.com/Sharon20222/Cloud-Computing/assets/117090659/25915417-d4dc-4c59-9df1-6525109c0539)```markdown
+
 # MapReduce Pi Calculation Project
 
 ## Overview
