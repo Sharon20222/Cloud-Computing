@@ -1,4 +1,3 @@
-
 ```markdown
 # MapReduce Pi Calculation Project
 
