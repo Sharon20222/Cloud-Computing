@@ -1,19 +1,3 @@
-The `README.md` file is written in Markdown, a lightweight markup language that allows you to format text. When rendered correctly (e.g., on GitHub or in a Markdown viewer), it should display formatted text, headings, code blocks, links, and images.
-
-If the file is not displaying correctly, it could be due to:
-
-1. **Improper File Extension**: Ensure that the file is saved with the `.md` extension.
-2. **Viewing in a Plain Text Editor**: Some text editors may not render Markdown formatting. Try using a Markdown viewer or editor, or view it directly on a platform like GitHub.
-3. **Incorrect Markdown Syntax**: Ensure the Markdown syntax is correct. However, the provided Markdown seems correct.
-
-To verify and view the rendered Markdown properly, you can:
-
-1. **Use a Markdown Editor**: Use an editor that supports Markdown rendering, such as VS Code, Atom, or a dedicated Markdown editor like Typora.
-2. **View on GitHub**: If you have committed and pushed the `README.md` file to a GitHub repository, navigate to the repository on GitHub to see the rendered version.
-3. **Online Markdown Viewer**: Use an online Markdown viewer to paste the content and see it rendered.
-
-Here’s the provided Markdown again, which should render correctly:
-
 ```markdown
 # MapReduce Pi Calculation Project
 
@@ -81,5 +65,3 @@ MapReduce, Pi Calculation, Monte Carlo Method, Java, Hadoop, Distributed Computi
 
 For more details, you can refer to the [Google presentation slides](https://docs.google.com/presentation/d/14XJkJxsRKIIvfrAIWaXOGuTj1gseSTgBM-mOf3E-Yi4/edit?usp=sharing).
 ```
-
-Ensure that your text editor or viewer supports Markdown and that the file is named `README.md` to enable proper rendering.
