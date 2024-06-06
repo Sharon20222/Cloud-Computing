@@ -50,7 +50,7 @@ To run this project, you need to set up a development environment with the follo
 
 ## Screenshots
 
-![MapReduce Result](Images/image1.png)
+![MapReduce Result](MapReduce/Pi/Images/image1.png)
 
 ## Contributing
 
