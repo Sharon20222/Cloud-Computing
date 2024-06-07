@@ -72,5 +72,5 @@ This project successfully demonstrates the implementation of a MapReduce program
 
 ## References
 - Hadoop documentation
-- Relevant articles and tutorials on MapReduce and Inverted Indexes
-- [Your specific references, if any]
+
+Presentation Slides: https://docs.google.com/presentation/d/1dVSDg90IivIxeg_Ja1EsJtDBX-bR5WIR9g81zEf0x2c/edit?usp=sharing
