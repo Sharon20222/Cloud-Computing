@@ -1,6 +1,6 @@
 ---
 
-# Cloud Computing MapReduce Project
+# Cloud Computing Project
 
 ## Introduction
 
