@@ -138,6 +138,9 @@ $ gcloud dataproc jobs submit pyspark --cluster=<cluster-name> --region=<region>
 - Present the Pi value calculated using MapReduce.
 - **Result**: Pi value calculated: `3.104`
 
+## Presentation Link
+https://docs.google.com/presentation/d/1mN5IeajDRUp1MbNblTGueSJu3hH3K21kjPWLkHTPsAQ/edit?usp=sharing
+
 ## Enhancements
 ### Enhancing the Result with PySpark
 1. Open GCP and Select Cloud Storage.
