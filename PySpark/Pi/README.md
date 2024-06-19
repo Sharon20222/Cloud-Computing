@@ -1,6 +1,3 @@
-Sure, here is a complete `README.md` file for your project:
-
----
 
 # Project: Calculating Pi Using MapReduce and PySpark
 
