@@ -1,7 +1,3 @@
-Certainly! Below is a streamlined version of the `README.md` for your PageRank project, with the references to images removed:
-
----
-
 # PageRank Project
 
 This project explores the implementation of the PageRank algorithm using PySpark and Scala on Google Cloud Platform (GCP).
@@ -139,5 +135,3 @@ Detailed steps to test the PageRank implementations.
 - **Prepared for applying these techniques to more extensive and complex data projects.**
 
 ---
-
-This version of the README is clear and concise, focusing on the text-based information and providing an effective summary of your project without the need for additional images.
