@@ -1,4 +1,4 @@
-```markdown
+
 # Week 6 Homework 2 Project: PySpark on Kubernetes
 
 ## Overview
