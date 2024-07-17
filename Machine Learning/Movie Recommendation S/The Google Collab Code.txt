@@ -1,0 +1,451 @@
+
+Import libraries
+#https://grouplens.org/datasets/movielens/
+!pip install pyspark
+import pandas as pd
+from pyspark.sql.functions import col, explode
+from pyspark import SparkContext
+Collecting pyspark
+  Downloading pyspark-3.5.1.tar.gz (317.0 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 317.0/317.0 MB 3.2 MB/s eta 0:00:00
+  Preparing metadata (setup.py) ... done
+Requirement already satisfied: py4j==0.10.9.7 in /usr/local/lib/python3.10/dist-packages (from pyspark) (0.10.9.7)
+Building wheels for collected packages: pyspark
+  Building wheel for pyspark (setup.py) ... done
+  Created wheel for pyspark: filename=pyspark-3.5.1-py2.py3-none-any.whl size=317488491 sha256=d4d4a0d5eb87ea29eae5e96ada52490e42bba3f22d17b5b933c27bdc5045f1a7
+  Stored in directory: /root/.cache/pip/wheels/80/1d/60/2c256ed38dddce2fdd93be545214a63e02fbd8d74fb0b7f3a6
+Successfully built pyspark
+Installing collected packages: pyspark
+Successfully installed pyspark-3.5.1
+Initiate spark session
+from pyspark.sql import SparkSession
+sc = SparkContext
+# sc.setCheckpointDir('checkpoint')
+spark = SparkSession.builder.appName('Recommendations').getOrCreate()
+1. Load data
+movies = spark.read.csv("/content/movies.csv",header=True)
+ratings = spark.read.csv("/content/ratings.csv",header=True)
+ratings.show()
++------+-------+------+---------+
+|userId|movieId|rating|timestamp|
++------+-------+------+---------+
+|     1|      1|   4.0|964982703|
+|     1|      3|   4.0|964981247|
+|     1|      6|   4.0|964982224|
+|     1|     47|   5.0|964983815|
+|     1|     50|   5.0|964982931|
+|     1|     70|   3.0|964982400|
+|     1|    101|   5.0|964980868|
+|     1|    110|   4.0|964982176|
+|     1|    151|   5.0|964984041|
+|     1|    157|   5.0|964984100|
+|     1|    163|   5.0|964983650|
+|     1|    216|   5.0|964981208|
+|     1|    223|   3.0|964980985|
+|     1|    231|   5.0|964981179|
+|     1|    235|   4.0|964980908|
+|     1|    260|   5.0|964981680|
+|     1|    296|   3.0|964982967|
+|     1|    316|   3.0|964982310|
+|     1|    333|   5.0|964981179|
+|     1|    349|   4.0|964982563|
++------+-------+------+---------+
+only showing top 20 rows
+
+ratings.printSchema()
+root
+ |-- userId: string (nullable = true)
+ |-- movieId: string (nullable = true)
+ |-- rating: string (nullable = true)
+ |-- timestamp: string (nullable = true)
+
+ratings = ratings.\
+    withColumn('userId', col('userId').cast('integer')).\
+    withColumn('movieId', col('movieId').cast('integer')).\
+    withColumn('rating', col('rating').cast('float')).\
+    drop('timestamp')
+ratings.show()
++------+-------+------+
+|userId|movieId|rating|
++------+-------+------+
+|     1|      1|   4.0|
+|     1|      3|   4.0|
+|     1|      6|   4.0|
+|     1|     47|   5.0|
+|     1|     50|   5.0|
+|     1|     70|   3.0|
+|     1|    101|   5.0|
+|     1|    110|   4.0|
+|     1|    151|   5.0|
+|     1|    157|   5.0|
+|     1|    163|   5.0|
+|     1|    216|   5.0|
+|     1|    223|   3.0|
+|     1|    231|   5.0|
+|     1|    235|   4.0|
+|     1|    260|   5.0|
+|     1|    296|   3.0|
+|     1|    316|   3.0|
+|     1|    333|   5.0|
+|     1|    349|   4.0|
++------+-------+------+
+only showing top 20 rows
+
+Calculate sparsity
+# Count the total number of ratings in the dataset
+numerator = ratings.select("rating").count()
+
+# Count the number of distinct userIds and distinct movieIds
+num_users = ratings.select("userId").distinct().count()
+num_movies = ratings.select("movieId").distinct().count()
+
+# Set the denominator equal to the number of users multiplied by the number of movies
+denominator = num_users * num_movies
+
+# Divide the numerator by the denominator
+sparsity = (1.0 - (numerator *1.0)/denominator)*100
+print("The ratings dataframe is ", "%.2f" % sparsity + "% empty.")
+The ratings dataframe is  98.30% empty.
+Interpret ratings
+# Group data by userId, count ratings
+userId_ratings = ratings.groupBy("userId").count().orderBy('count', ascending=False)
+userId_ratings.show()
++------+-----+
+|userId|count|
++------+-----+
+|   414| 2698|
+|   599| 2478|
+|   474| 2108|
+|   448| 1864|
+|   274| 1346|
+|   610| 1302|
+|    68| 1260|
+|   380| 1218|
+|   606| 1115|
+|   288| 1055|
+|   249| 1046|
+|   387| 1027|
+|   182|  977|
+|   307|  975|
+|   603|  943|
+|   298|  939|
+|   177|  904|
+|   318|  879|
+|   232|  862|
+|   480|  836|
++------+-----+
+only showing top 20 rows
+
+# Group data by userId, count ratings
+movieId_ratings = ratings.groupBy("movieId").count().orderBy('count', ascending=False)
+movieId_ratings.show()
++-------+-----+
+|movieId|count|
++-------+-----+
+|    356|  329|
+|    318|  317|
+|    296|  307|
+|    593|  279|
+|   2571|  278|
+|    260|  251|
+|    480|  238|
+|    110|  237|
+|    589|  224|
+|    527|  220|
+|   2959|  218|
+|      1|  215|
+|   1196|  211|
+|     50|  204|
+|   2858|  204|
+|     47|  203|
+|    780|  202|
+|    150|  201|
+|   1198|  200|
+|   4993|  198|
++-------+-----+
+only showing top 20 rows
+
+Build Out An ALS Model
+# Import the required functions
+from pyspark.ml.evaluation import RegressionEvaluator
+from pyspark.ml.recommendation import ALS
+from pyspark.ml.tuning import ParamGridBuilder, CrossValidator
+# Create test and train set
+(train, test) = ratings.randomSplit([0.8, 0.2], seed = 1234)
+
+als = ALS(userCol="userId", itemCol="movieId", ratingCol="rating", nonnegative=True, implicitPrefs=False, coldStartStrategy="drop", rank=10, maxIter=10, regParam=0.1)
+
+
+# Confirm that a model called "als" was created
+type(als)
+pyspark.ml.recommendation.ALS
+def __init__(*, rank: int=10, maxIter: int=10, regParam: float=0.1, numUserBlocks: int=10, numItemBlocks: int=10, implicitPrefs: bool=False, alpha: float=1.0, userCol: str='user', itemCol: str='item', seed: Optional[int]=None, ratingCol: str='rating', nonnegative: bool=False, checkpointInterval: int=10, intermediateStorageLevel: str='MEMORY_AND_DISK', finalStorageLevel: str='MEMORY_AND_DISK', coldStartStrategy: str='nan', blockSize: int=4096)
+Alternating Least Squares (ALS) matrix factorization.
+
+ALS attempts to estimate the ratings matrix `R` as the product of
+two lower-rank matrices, `X` and `Y`, i.e. `X * Yt = R`. Typically
+these approximations are called 'factor' matrices. The general
+approach is iterative. During each iteration, one of the factor
+matrices is held constant, while the other is solved for using least
+squares. The newly-solved factor matrix is then held constant while
+solving for the other factor matrix.
+
+This is a blocked implementation of the ALS factorization algorithm
+that groups the two sets of factors (referred to as "users" and
+"products") into blocks and reduces communication by only sending
+one copy of each user vector to each product block on each
+iteration, and only for the product blocks that need that user's
+feature vector. This is achieved by pre-computing some information
+about the ratings matrix to determine the "out-links" of each user
+(which blocks of products it will contribute to) and "in-link"
+information for each product (which of the feature vectors it
+receives from each user block it will depend on). This allows us to
+send only an array of feature vectors between each user block and
+product block, and have the product block find the users' ratings
+and update the products based on these messages.
+
+For implicit preference data, the algorithm used is based on
+`"Collaborative Filtering for Implicit Feedback Datasets",
+<https://doi.org/10.1109/ICDM.2008.22>`_, adapted for the blocked
+approach used here.
+
+Essentially instead of finding the low-rank approximations to the
+rating matrix `R`, this finds the approximations for a preference
+matrix `P` where the elements of `P` are 1 if r > 0 and 0 if r <= 0.
+The ratings then act as 'confidence' values related to strength of
+indicated user preferences rather than explicit ratings given to
+items.
+
+.. versionadded:: 1.4.0
+
+Notes
+-----
+The input rating dataframe to the ALS implementation should be deterministic.
+Nondeterministic data can cause failure during fitting ALS model.
+For example, an order-sensitive operation like sampling after a repartition makes
+dataframe output nondeterministic, like `df.repartition(2).sample(False, 0.5, 1618)`.
+Checkpointing sampled dataframe or adding a sort before sampling can help make the
+dataframe deterministic.
+
+Examples
+--------
+>>> df = spark.createDataFrame(
+...     [(0, 0, 4.0), (0, 1, 2.0), (1, 1, 3.0), (1, 2, 4.0), (2, 1, 1.0), (2, 2, 5.0)],
+...     ["user", "item", "rating"])
+>>> als = ALS(rank=10, seed=0)
+>>> als.setMaxIter(5)
+ALS...
+>>> als.getMaxIter()
+5
+>>> als.setRegParam(0.1)
+ALS...
+>>> als.getRegParam()
+0.1
+>>> als.clear(als.regParam)
+>>> model = als.fit(df)
+>>> model.getBlockSize()
+4096
+>>> model.getUserCol()
+'user'
+>>> model.setUserCol("user")
+ALSModel...
+>>> model.getItemCol()
+'item'
+>>> model.setPredictionCol("newPrediction")
+ALS...
+>>> model.rank
+10
+>>> model.userFactors.orderBy("id").collect()
+[Row(id=0, features=[...]), Row(id=1, ...), Row(id=2, ...)]
+>>> test = spark.createDataFrame([(0, 2), (1, 0), (2, 0)], ["user", "item"])
+>>> predictions = sorted(model.transform(test).collect(), key=lambda r: r[0])
+>>> predictions[0]
+Row(user=0, item=2, newPrediction=0.6929...)
+>>> predictions[1]
+Row(user=1, item=0, newPrediction=3.47356...)
+>>> predictions[2]
+Row(user=2, item=0, newPrediction=-0.899198...)
+>>> user_recs = model.recommendForAllUsers(3)
+>>> user_recs.where(user_recs.user == 0)        .select("recommendations.item", "recommendations.rating").collect()
+[Row(item=[0, 1, 2], rating=[3.910..., 1.997..., 0.692...])]
+>>> item_recs = model.recommendForAllItems(3)
+>>> item_recs.where(item_recs.item == 2)        .select("recommendations.user", "recommendations.rating").collect()
+[Row(user=[2, 1, 0], rating=[4.892..., 3.991..., 0.692...])]
+>>> user_subset = df.where(df.user == 2)
+>>> user_subset_recs = model.recommendForUserSubset(user_subset, 3)
+>>> user_subset_recs.select("recommendations.item", "recommendations.rating").first()
+Row(item=[2, 1, 0], rating=[4.892..., 1.076..., -0.899...])
+>>> item_subset = df.where(df.item == 0)
+>>> item_subset_recs = model.recommendForItemSubset(item_subset, 3)
+>>> item_subset_recs.select("recommendations.user", "recommendations.rating").first()
+Row(user=[0, 1, 2], rating=[3.910..., 3.473..., -0.899...])
+>>> als_path = temp_path + "/als"
+>>> als.save(als_path)
+>>> als2 = ALS.load(als_path)
+>>> als.getMaxIter()
+5
+>>> model_path = temp_path + "/als_model"
+>>> model.save(model_path)
+>>> model2 = ALSModel.load(model_path)
+>>> model.rank == model2.rank
+True
+>>> sorted(model.userFactors.collect()) == sorted(model2.userFactors.collect())
+True
+>>> sorted(model.itemFactors.collect()) == sorted(model2.itemFactors.collect())
+True
+>>> model.transform(test).take(1) == model2.transform(test).take(1)
+True
+Tell Spark how to tune your ALS model
+# Import the requisite items
+from pyspark.ml.evaluation import RegressionEvaluator
+from pyspark.ml.tuning import ParamGridBuilder, CrossValidator
+
+# Add hyperparameters and their respective values to param_grid
+param_grid = ParamGridBuilder() \
+            .addGrid(als.rank, [10, 50, 100, 150]) \
+            .addGrid(als.regParam, [.01, .05, .1, .15]) \
+            .build()
+            #             .addGrid(als.maxIter, [5, 50, 100, 200]) \
+
+
+# Define evaluator as RMSE and print length of evaluator
+evaluator = RegressionEvaluator(metricName="rmse", labelCol="rating", predictionCol="prediction")
+print ("Num models to be tested: ", len(param_grid))
+Num models to be tested:  16
+Build your cross validation pipeline
+# Build cross validation using CrossValidator
+cv = CrossValidator(estimator=als, estimatorParamMaps=param_grid, evaluator=evaluator, numFolds=5)
+
+# Confirm cv was built
+print(cv)
+CrossValidator_3caa908b7bc8
+Best Model and Best Model Parameters
+#Fit cross validator to the 'train' dataset
+model = cv.fit(train)
+
+#Extract best model from the cv model above
+best_model = model.bestModel
+# Print best_model
+print(type(best_model))
+
+# Complete the code below to extract the ALS model parameters
+print("**Best Model**")
+
+# # Print "Rank"
+print("  Rank:", best_model._java_obj.parent().getRank())
+
+# Print "MaxIter"
+print("  MaxIter:", best_model._java_obj.parent().getMaxIter())
+
+# Print "RegParam"
+print("  RegParam:", best_model._java_obj.parent().getRegParam())
+<class 'pyspark.ml.recommendation.ALSModel'>
+**Best Model**
+  Rank: 100
+  MaxIter: 10
+  RegParam: 0.15
+# View the predictions
+test_predictions = best_model.transform(test)
+RMSE = evaluator.evaluate(test_predictions)
+print(RMSE)
+0.8689996614535941
+test_predictions.show()
++------+-------+------+----------+
+|userId|movieId|rating|prediction|
++------+-------+------+----------+
+|   580|   1580|   4.0| 3.4621773|
+|   580|  44022|   3.5| 3.2120502|
+|   597|    471|   2.0|  4.123531|
+|   108|   1959|   5.0| 3.7660606|
+|   368|   2122|   2.0| 1.7946743|
+|   436|    471|   3.0| 3.6429536|
+|   587|   1580|   4.0| 3.8523383|
+|    27|   1580|   3.0| 3.3339038|
+|   606|   1580|   2.5|  3.171993|
+|   606|  44022|   4.0|  2.832498|
+|    91|   2122|   4.0|  2.240471|
+|   157|   3175|   2.0| 3.4586308|
+|   232|   1580|   3.5| 3.3722396|
+|   232|  44022|   3.0| 3.1148474|
+|   246|   1645|   4.0| 3.7608511|
+|   599|   2366|   3.0| 2.8579612|
+|   111|   1088|   3.0|  3.206924|
+|   111|   3175|   3.5| 2.9308226|
+|    47|   1580|   1.5| 2.7192614|
+|   140|   1580|   3.0| 3.3882282|
++------+-------+------+----------+
+only showing top 20 rows
+
+Make Recommendations
+# Generate n Recommendations for all users
+nrecommendations = best_model.recommendForAllUsers(10)
+nrecommendations.limit(10).show()
++------+--------------------+
+|userId|     recommendations|
++------+--------------------+
+|     1|[{3379, 5.70005},...|
+|     2|[{131724, 4.79200...|
+|     3|[{6835, 4.8569775...|
+|     4|[{3851, 4.8465486...|
+|     5|[{3379, 4.5464873...|
+|     6|[{3086, 4.715905}...|
+|     7|[{3379, 4.469783}...|
+|     8|[{3379, 4.6704435...|
+|     9|[{3379, 4.886676}...|
+|    10|[{71579, 4.526182...|
++------+--------------------+
+
+nrecommendations = nrecommendations\
+    .withColumn("rec_exp", explode("recommendations"))\
+    .select('userId', col("rec_exp.movieId"), col("rec_exp.rating"))
+
+nrecommendations.limit(10).show()
++------+-------+---------+
+|userId|movieId|   rating|
++------+-------+---------+
+|     1|   3379|  5.70005|
+|     1|   5490|5.5442615|
+|     1|  33649|5.5405164|
+|     1| 171495|5.4329085|
+|     1|  78836| 5.395988|
+|     1|   5915|5.3631206|
+|     1|   5416|5.3475504|
+|     1|   5328|5.3475504|
+|     1|   3951|5.3475504|
+|     1| 184245|5.3464084|
++------+-------+---------+
+
+Do the recommendations make sense?
+Lets merge movie name and genres to teh recommendation matrix for interpretability.
+
+nrecommendations.join(movies, on='movieId').filter('userId = 100').show()
++-------+------+---------+--------------------+--------------------+
+|movieId|userId|   rating|               title|              genres|
++-------+------+---------+--------------------+--------------------+
+|   3379|   100|5.0393286| On the Beach (1959)|               Drama|
+|  67618|   100| 5.024381|Strictly Sexual (...|Comedy|Drama|Romance|
+|  33649|   100| 5.015139|  Saving Face (2004)|Comedy|Drama|Romance|
+|  42730|   100|4.9521394|   Glory Road (2006)|               Drama|
+|  74282|   100| 4.903898|Anne of Green Gab...|Children|Drama|Ro...|
+| 171495|   100|4.8909626|              Cosmos|  (no genres listed)|
+|   3086|   100|4.8872714|Babes in Toyland ...|Children|Comedy|F...|
+| 184245|   100| 4.872456|De platte jungle ...|         Documentary|
+| 179135|   100| 4.872456|Blue Planet II (2...|         Documentary|
+| 138966|   100| 4.872456|Nasu: Summer in A...|           Animation|
++-------+------+---------+--------------------+--------------------+
+
+ratings.join(movies, on='movieId').filter('userId = 100').sort('rating', ascending=False).limit(10).show()
++-------+------+------+--------------------+--------------------+
+|movieId|userId|rating|               title|              genres|
++-------+------+------+--------------------+--------------------+
+|   1101|   100|   5.0|      Top Gun (1986)|      Action|Romance|
+|   1958|   100|   5.0|Terms of Endearme...|        Comedy|Drama|
+|   2423|   100|   5.0|Christmas Vacatio...|              Comedy|
+|   4041|   100|   5.0|Officer and a Gen...|       Drama|Romance|
+|   5620|   100|   5.0|Sweet Home Alabam...|      Comedy|Romance|
+|    368|   100|   4.5|     Maverick (1994)|Adventure|Comedy|...|
+|    934|   100|   4.5|Father of the Bri...|              Comedy|
+|    539|   100|   4.5|Sleepless in Seat...|Comedy|Drama|Romance|
+|     16|   100|   4.5|       Casino (1995)|         Crime|Drama|
+|    553|   100|   4.5|    Tombstone (1993)|Action|Drama|Western|
++-------+------+------+--------------------+--------------------+
