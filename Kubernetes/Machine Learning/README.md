@@ -1,5 +1,3 @@
-
-```markdown
 # Machine Learning on Kubernetes
 
 ## CS571 - Week 10 Homework 1
