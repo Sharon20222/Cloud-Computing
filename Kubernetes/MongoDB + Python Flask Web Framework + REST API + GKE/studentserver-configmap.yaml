@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: studentserver-config
+data:
+  MONGO_URL: Change-this-to-your-mongoDB-EXTERNAL-IP
+  MONGO_DATABASE: mydb
