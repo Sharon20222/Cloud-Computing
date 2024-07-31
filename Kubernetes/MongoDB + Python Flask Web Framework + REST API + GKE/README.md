@@ -286,3 +286,6 @@ Use `curl` commands to test the API endpoints:
 - Check Kubernetes logs for errors if services are not reachable.
 - Verify `ConfigMap` and `Ingress` configurations for correct settings.
 
+## **Presentation Slides**
+- https://docs.google.com/presentation/d/1LtEhS3HNJFIEZ4s_nZElea39hB8_XgnoJN8-GQ4s5CY/edit?usp=sharing
+  
