@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: server
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  rules:
+  - host: cs571.project.com
+    http:
+      paths:
+      - path: /studentserver(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: web
+            port:
+              number: 8080
+      - path: /bookshelf(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: bookshelf-service
+            port:
+              number: 5000
