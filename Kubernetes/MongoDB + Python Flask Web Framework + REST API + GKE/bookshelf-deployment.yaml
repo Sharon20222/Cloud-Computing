@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bookshelf-deployment
+  labels:
+    app: bookshelf-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bookshelf-deployment
+  template:
+    metadata:
+      labels:
+        app: bookshelf-deployment
+    spec:
+      containers:
+      - name: bookshelf-deployment
+        image: zhou19539/bookshelf
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 5000
+        env:
+        - name: MONGO_URL
+          valueFrom:
+            configMapKeyRef:
+              name: bookshelf-config
+              key: MONGO_URL
+        - name: MONGO_DATABASE
+          valueFrom:
+            configMapKeyRef:
+              name: bookshelf-config
+              key: MONGO_DATABASE
