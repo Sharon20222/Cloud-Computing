@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bookshelf-config
+data:
+  # SERVICE_NAME.NAMESPACE.svc.cluster.local:SERVICE_PORT
+  MONGO_URL: Change-this-to-your-mongoDB-EXTERNAL-IP
+  MONGO_DATABASE: mydb
