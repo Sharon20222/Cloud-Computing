@@ -1,5 +1,4 @@
 
-```markdown
 # Introducing Deep Learning Pipelines for Apache Spark
 
 ## Overview
